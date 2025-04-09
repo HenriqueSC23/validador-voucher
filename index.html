@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Validador de Voucher</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+      background-color: #f2f2f2;
+    }
+    #reader {
+      width: 300px;
+      margin: 20px auto;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Validador de Voucher</h2>
+  <p>Escaneie o QR Code do cliente abaixo:</p>
+
+  <div id="reader"></div>
+  <div id="resultado">Aguardando leitura do QR Code...</div>
+
+  <script>
+    const URL_API = "https://script.google.com/macros/s/AKfycbwx_BgCkTTvXB9uh3RmbyXv_aaD01slbc88-BzbgXjTAj8WxnhZozjJqvptOFyWn5Jt/exec"; // Substituir por sua URL
+
+    function validarCodigo(codigo) {
+      const resultado = document.getElementById("resultado");
+      resultado.innerHTML = "⏳ Validando...";
+
+      fetch(`${URL_API}?codigo=${codigo}`)
+        .then(res => res.json())
+        .then(dados => {
+          if (dados.status === "valido") {
+            resultado.innerHTML = `✅ Voucher válido para <strong>${dados.nome}</strong><br>
+            🗓️ Check-in: ${dados.checkin}<br>
+            🗓️ Check-out: ${dados.checkout}`;
+            resultado.style.color = "green";
+          } else if (dados.status === "invalido") {
+            resultado.innerHTML = `❌ Voucher fora do período da reserva`;
+            resultado.style.color = "orange";
+          } else {
+            resultado.innerHTML = `❌ Código não encontrado`;
+            resultado.style.color = "red";
+          }
+        })
+        .catch(() => {
+          resultado.innerHTML = "Erro ao validar voucher.";
+          resultado.style.color = "red";
+        });
+    }
+
+    function onScanSuccess(qrCodeMessage) {
+      document.getElementById("resultado").innerText = `📦 Código lido: ${qrCodeMessage}`;
+      validarCodigo(qrCodeMessage);
+      html5QrcodeScanner.clear();
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
