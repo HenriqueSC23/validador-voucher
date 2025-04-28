@@ -14,23 +14,48 @@
     #reader {
       width: 300px;
       margin: 20px auto;
+      display: none; /* Começa oculto */
     }
     #resultado {
       margin-top: 20px;
       font-size: 18px;
       font-weight: bold;
     }
+    #scan-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #scan-button:hover {
+      background-color: #45a049;
+    }
+    .instructions {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
+
   <h2>Validador de Voucher</h2>
-  <p>Escaneie o QR Code do cliente abaixo:</p>
+  <p class="instructions">Clique no botão abaixo e aponte a câmera para o QR Code do cliente.</p>
+
+  <button id="scan-button">📷 Escanear QR Code</button>
 
   <div id="reader"></div>
   <div id="resultado">Aguardando leitura do QR Code...</div>
 
   <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbwx_BgCkTTvXB9uh3RmbyXv_aaD01slbc88-BzbgXjTAj8WxnhZozjJqvptOFyWn5Jt/exec"; // Substituir por sua URL
+    const URL_API = "https://script.google.com/macros/s/AKfycbwx_BgCkTTvXB9uh3RmbyXv_aaD01slbc88-BzbgXjTAj8WxnhZozjJqvptOFyWn5Jt/exec"; // Sua URL
 
     function validarCodigo(codigo) {
       const resultado = document.getElementById("resultado");
@@ -53,7 +78,7 @@
           }
         })
         .catch(() => {
-          resultado.innerHTML = "Erro ao validar voucher.";
+          resultado.innerHTML = "❌ Erro ao validar voucher.";
           resultado.style.color = "red";
         });
     }
@@ -61,12 +86,36 @@
     function onScanSuccess(qrCodeMessage) {
       document.getElementById("resultado").innerText = `📦 Código lido: ${qrCodeMessage}`;
       validarCodigo(qrCodeMessage);
-      html5QrcodeScanner.clear();
+      html5QrCode.stop().then(() => {
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("scan-button").style.display = "inline-flex";
+      });
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader", { fps: 10, qrbox: 250 });
-    html5QrcodeScanner.render(onScanSuccess);
+    let html5QrCode;
+
+    document.getElementById("scan-button").addEventListener("click", () => {
+      const reader = document.getElementById("reader");
+      reader.style.display = "block";
+      document.getElementById("scan-button").style.display = "none";
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" }, // Força câmera traseira
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        onScanSuccess
+      )
+      .catch(err => {
+        document.getElementById("resultado").innerText = "❌ Erro ao acessar a câmera.";
+        document.getElementById("resultado").style.color = "red";
+        console.error(err);
+      });
+    });
   </script>
+
 </body>
 </html>
