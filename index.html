@@ -9,8 +9,24 @@
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 30px;
-      background-color: #f2f2f2;
+      background-color: #EBF5F5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
+
+    .caixa-verificacao {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.25);
+      padding: 32px;
+
+      img {
+        width: 280px;
+      }
+    }
+
     #reader {
       width: 300px;
       margin: 20px auto;
@@ -22,7 +38,7 @@
       font-weight: bold;
     }
     #scan-button {
-      background-color: #4CAF50;
+      background-color: #f7941f;
       color: white;
       padding: 15px 30px;
       font-size: 18px;
@@ -45,88 +61,89 @@
   </style>
 </head>
 <body>
+  <div class="caixa-verificacao">
+    <img src="https://viagem.vouparaportoseguro.com.br/wp-content/uploads/2025/03/PraiaVantagens-1.png" alt="logopito praia e vantagens">
+    <h2>Validador de Voucher</h2>
+    <p class="instructions">Clique no botão abaixo e aponte a câmera para o QR Code do cliente.</p>
 
-  <h2>Validador de Voucher</h2>
-  <p class="instructions">Clique no botão abaixo e aponte a câmera para o QR Code do cliente.</p>
+    <button id="scan-button">📷 Escanear QR Code</button>
 
-  <button id="scan-button">📷 Escanear QR Code</button>
+    <div id="reader"></div>
+    <div id="resultado">Aguardando leitura do QR Code...</div>
 
-  <div id="reader"></div>
-  <div id="resultado">Aguardando leitura do QR Code...</div>
+    <script>
+      const URL_API = "https://script.google.com/macros/s/AKfycbx4221MEO64f6ZsNAO6_GxxO05h1A0mh-k9z6OS-fde8LX-_qnXNClWucyJ9593Rbp8Tw/exec"; // Sua URL
 
-  <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbx4221MEO64f6ZsNAO6_GxxO05h1A0mh-k9z6OS-fde8LX-_qnXNClWucyJ9593Rbp8Tw/exec"; // Sua URL
+      function formatarData(dataIso) {
+        const data = new Date(dataIso);
+        const dia = String(data.getDate()).padStart(2, '0');
+        const mes = String(data.getMonth() + 1).padStart(2, '0'); // Janeiro é 0
+        const ano = data.getFullYear();
+        return `${dia}/${mes}/${ano}`;
+      }
 
-    function formatarData(dataIso) {
-      const data = new Date(dataIso);
-      const dia = String(data.getDate()).padStart(2, '0');
-      const mes = String(data.getMonth() + 1).padStart(2, '0'); // Janeiro é 0
-      const ano = data.getFullYear();
-      return `${dia}/${mes}/${ano}`;
-    }
+      function validarCodigo(codigo) {
+        const resultado = document.getElementById("resultado");
+        resultado.innerHTML = "⏳ Validando...";
 
-    function validarCodigo(codigo) {
-      const resultado = document.getElementById("resultado");
-      resultado.innerHTML = "⏳ Validando...";
-
-      fetch(`${URL_API}?codigo=${codigo}`)
-        .then(res => res.json())
-        .then(dados => {
-          if (dados.status === "valido") {
-            const checkinFormatado = formatarData(dados.checkin);
-            const checkoutFormatado = formatarData(dados.checkout);
-            
-            resultado.innerHTML = `✅ Voucher válido para <strong>${dados.nome}</strong><br>
-            🗓️ Check-in: ${checkinFormatado}<br>
-            🗓️ Check-out: ${checkoutFormatado}`;
-            resultado.style.color = "green";
-          } else if (dados.status === "invalido") {
-            resultado.innerHTML = `❌ Voucher fora do período da reserva`;
-            resultado.style.color = "orange";
-          } else {
-            resultado.innerHTML = `❌ Código não encontrado`;
+        fetch(`${URL_API}?codigo=${codigo}`)
+          .then(res => res.json())
+          .then(dados => {
+            if (dados.status === "valido") {
+              const checkinFormatado = formatarData(dados.checkin);
+              const checkoutFormatado = formatarData(dados.checkout);
+              
+              resultado.innerHTML = `✅ Voucher válido para <strong>${dados.nome}</strong><br>
+              🗓️ Check-in: ${checkinFormatado}<br>
+              🗓️ Check-out: ${checkoutFormatado}`;
+              resultado.style.color = "green";
+            } else if (dados.status === "invalido") {
+              resultado.innerHTML = `❌ Voucher fora do período da reserva`;
+              resultado.style.color = "orange";
+            } else {
+              resultado.innerHTML = `❌ Código não encontrado`;
+              resultado.style.color = "red";
+            }
+          })
+          .catch(() => {
+            resultado.innerHTML = "❌ Erro ao validar voucher.";
             resultado.style.color = "red";
-          }
-        })
-        .catch(() => {
-          resultado.innerHTML = "❌ Erro ao validar voucher.";
-          resultado.style.color = "red";
+          });
+      }
+
+      function onScanSuccess(qrCodeMessage) {
+        document.getElementById("resultado").innerText = `📦 Código lido: ${qrCodeMessage}`;
+        validarCodigo(qrCodeMessage);
+        html5QrCode.stop().then(() => {
+          document.getElementById("reader").style.display = "none";
+          document.getElementById("scan-button").style.display = "inline-flex";
         });
-    }
+      }
 
-    function onScanSuccess(qrCodeMessage) {
-      document.getElementById("resultado").innerText = `📦 Código lido: ${qrCodeMessage}`;
-      validarCodigo(qrCodeMessage);
-      html5QrCode.stop().then(() => {
-        document.getElementById("reader").style.display = "none";
-        document.getElementById("scan-button").style.display = "inline-flex";
+      let html5QrCode;
+
+      document.getElementById("scan-button").addEventListener("click", () => {
+        const reader = document.getElementById("reader");
+        reader.style.display = "block";
+        document.getElementById("scan-button").style.display = "none";
+
+        html5QrCode = new Html5Qrcode("reader");
+
+        html5QrCode.start(
+          { facingMode: "environment" }, // Força câmera traseira
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          onScanSuccess
+        )
+        .catch(err => {
+          document.getElementById("resultado").innerText = "❌ Erro ao acessar a câmera.";
+          document.getElementById("resultado").style.color = "red";
+          console.error(err);
+        });
       });
-    }
-
-    let html5QrCode;
-
-    document.getElementById("scan-button").addEventListener("click", () => {
-      const reader = document.getElementById("reader");
-      reader.style.display = "block";
-      document.getElementById("scan-button").style.display = "none";
-
-      html5QrCode = new Html5Qrcode("reader");
-
-      html5QrCode.start(
-        { facingMode: "environment" }, // Força câmera traseira
-        {
-          fps: 10,
-          qrbox: 250
-        },
-        onScanSuccess
-      )
-      .catch(err => {
-        document.getElementById("resultado").innerText = "❌ Erro ao acessar a câmera.";
-        document.getElementById("resultado").style.color = "red";
-        console.error(err);
-      });
-    });
-  </script>
-
+    </script>
+  </div>
 </body>
 </html>
